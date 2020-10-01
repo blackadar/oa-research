@@ -2,7 +2,7 @@ import numpy as np
 import common.dictutils as du
 
 
-def slices_to_mask(nested_dict: dict, threshold = 0.5):
+def slices_to_mask(nested_dict: dict, threshold=0.5):
     """
     Converts image data to boolean. Rounds if neccessary.
     Note: expects typical nested dict! NOT modified to be volumes, etc.

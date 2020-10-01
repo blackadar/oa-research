@@ -12,4 +12,4 @@ def mask(arr, voxel_size=1):
     assert arr.dtype == np.bool or arr.dtype == bool, f"Array must contain boolean values."
     assert arr.ndim == 2 or arr.ndim == 3, "Array should be (slice * ) row * column."
 
-    return np.multiply(voxel_size, np.sum(arr))
+    return np.multiply(voxel_size, np.count_nonzero(arr))

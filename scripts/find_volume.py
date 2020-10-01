@@ -14,10 +14,21 @@ def main():
     preds_series = iu.slices_to_mask(preds_series, threshold=0.5)
     preds_volumes = iu.visit_to_volume(preds_series)
 
+    print("Volumetric Analysis")
+
     for patient, visits in preds_volumes.items():
         for visit, volume in visits.items():
-            v = vol.mask(volume, voxel_size=1)
-            print(f"{patient}, {visit}: {v} mm^3.")
+            v = vol.mask(volume, voxel_size=0.357 * 0.511 * 3)
+            print(f"{patient}, {visit}: {v: .3f} mm^3.")
+
+    print("Per-Slice Analysis")
+
+    for patient, visits in preds_series.items():
+        for visit, slice_ids in visits.items():
+            print(f"== {patient} {visit} ==")
+            for slice_id, im in slice_ids.items():
+                v = vol.mask(im, voxel_size=0.357 * 0.511 * 3)
+                print(f"  {slice_id}: {v: .3f} mm^3")
 
 
 if __name__ == "__main__":
