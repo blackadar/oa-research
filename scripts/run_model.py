@@ -1,5 +1,7 @@
 """
 Runs a trained model on input data.
+Expects input data in ./input
+Places predictions in ./output
 """
 import os
 import tensorflow as tf
@@ -29,35 +31,28 @@ smooth = 1e-5
 
 def create_test_data():
     from skimage.io import imread
-    data_path = 'data/'
     image_rows = 448
     image_cols = 448
 
-    test_data_path = os.path.join(data_path, 'test')
+    test_data_path = 'input/'
     images = os.listdir(test_data_path)
-    total = len(images)  # // 2
+    total = len(images)
 
     imgs = np.ndarray((total, image_rows, image_cols), dtype=np.uint8)
-    # imgs_mask = np.ndarray((total, image_rows, image_cols), dtype=np.uint8)
     imgs_id = np.ndarray((total,), dtype=object)
 
     i = 0
     print('-' * 30)
-    print('Loading testing images...')
+    print('Loading input images...')
     print('-' * 30)
     for image_name in images:
         if 'mask' in image_name:
             continue
-        # image_mask_name = image_name.split('.')[0] + '_mask.bmp'
         img_id = image_name.split('.')[0]
         img = imread(os.path.join(test_data_path, image_name), as_grey=True)
-        # img_mask = imread(os.path.join(test_data_path, image_mask_name), as_grey=True)
-
         img = np.array([img])
-        # img_mask = np.array([img_mask])
 
         imgs[i] = img
-        # imgs_mask[i] = img_mask
         imgs_id[i] = img_id
 
         if i % 10 == 0:
@@ -65,25 +60,21 @@ def create_test_data():
         i += 1
     print('Loading done.')
 
-    # np.save('imgs_test.npy', imgs)
-    # np.save('imgs_mask_test.npy', imgs_mask)
-    # np.save('imgs_id_test.npy', imgs_id)
-    # print('Saving to .npy files done.')
     return imgs, imgs_id
 
 
 def dice_coef(y_true, y_pred):
-    y_true_f = K.flatten((y_true > 0.5).astype(int))
-    y_pred_f = K.flatten((y_pred > 0.5).astype(int))
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
 
 
 def similarity(y_true, y_pred):
-    y_true_f = K.flatten((y_true > 0.5).astype(int))
-    y_pred_f = K.flatten((y_pred > 0.5).astype(int))
+    y_true_f = K.flatten(y_true)
+    y_pred_f = K.flatten(y_pred)
     intersection = K.sum(K.abs(y_true_f * y_pred_f))
-    return ((intersection) / (K.sum(K.abs(y_true_f) + K.abs(y_pred_f)) - intersection))
+    return ((intersection) / (K.sum(K.abs(y_true_f)+ K.abs(y_pred_f)) - intersection))
 
 
 def dice_coef_loss(y_true, y_pred):
@@ -173,12 +164,10 @@ def predict():
     print('-' * 30)
     imgs_mask_test_pred = model.predict(imgs_test, verbose=1)
 
-    # np.save('imgs_mask_test.npy', imgs_mask_test_pred)
-
     print('-' * 30)
     print('Saving predicted masks to files...')
     print('-' * 30)
-    pred_dir = 'out'
+    pred_dir = 'output/'
     if not os.path.exists(pred_dir):
         os.mkdir(pred_dir)
     for image, image_id in zip(imgs_mask_test_pred, imgs_id_test):

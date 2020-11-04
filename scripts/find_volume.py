@@ -6,7 +6,7 @@ import common.files as files
 import common.imutils as iu
 import analysis.volume as vol
 
-preds = pathlib.Path('data/preds/')
+preds = pathlib.Path('data/iwfs_out/')
 
 
 def main():
