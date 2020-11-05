@@ -18,3 +18,18 @@ def update_nested_dict(original: dict, update: Union[dict, collections.abc.Mappi
         else:
             original[k] = v
     return original
+
+
+def find_diff(i1, i2):
+    i2_missing = []
+    i1_missing = []
+
+    for item in i1:
+        if item not in i2:
+            i2_missing.append(item)
+
+    for item in i2:
+        if item not in i1:
+            i1_missing.append(item)
+
+    return i1_missing, i2_missing

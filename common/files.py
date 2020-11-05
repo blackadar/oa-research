@@ -29,12 +29,51 @@ def read_image_series(path, ends_with="pred.png", no_visit=False):
             log.warning(f'File "{file.name}" does not conform to the naming standard.')
             continue
         if no_visit:
-            (patient, visit, slice_id) = int(name_split[0]), '0', int(name_split[1])
+            (patient, visit, slice_id) = int(name_split[0]), 'v00', int(name_split[1])
         else:
             (patient, visit, slice_id) = name_split
             patient = int(patient)
             slice_id = int(slice_id)
         im = np.array(Image.open(file))
         du.update_nested_dict(result, {patient: {visit: {slice_id: im}}})
+
+    return result
+
+
+def read_cdi_bone_volumes(path, ends_with=".txt"):
+    """
+    Reads patient CDI Bone Volumes from a directory of .txt files.
+    Returns a dict of patient, (start, end)
+    :param path: Path to folder containing .txt files
+    :param ends_with: File ending to match against. Can exclude unwanted .txts
+    :return: dict of patient, (start, end)
+    """
+
+    result = {}
+    folder = pathlib.Path(path)
+    files = list(folder.glob(f"*{ends_with}"))
+    if len(files) < 1:
+        log.error(f"No files (ending in '{ends_with}') found in {folder}!")
+        exit(-1)
+
+    for idx, file in enumerate(files):
+        name_split = file.name[:-1*len(ends_with)].split('_')[:-1]  # Ignore .txt, store contents between underscores
+        if len(name_split) != 5:
+            log.warning(f'File "{file.name}" does not conform to the naming standard, ending with {ends_with}.')
+            continue
+        (_, _, _, patient, visit) = name_split
+        patient = int(patient)
+        with open(file) as fp:
+            try:
+                for i, line in enumerate(fp):
+                    if i == 5:
+                        start = int(line)
+                    elif i == 6:
+                        end = int(line)
+                    elif i > 6:
+                        break
+                du.update_nested_dict(result, {patient: {visit: (start, end)}})
+            except (TypeError, ValueError) as e:
+                log.error(f"Error parsing {file}: {e}")
 
     return result
