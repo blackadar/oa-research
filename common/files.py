@@ -41,7 +41,7 @@ def write_image(dataset, output_path, size=(448, 448)):
             x_start = arr.shape[0] // 2 - size[0] // 2
             x_end = x_start + size[0]
             arr = arr[x_start:x_end]
-        else:  # Else, if it's the same or lesser, pad it  TODO: Even or uneven padding? MATLAB may use left aligned.
+        else:  # Else, if it's the same or lesser, pad it  TODO:MATLAB may use left aligned. Should be consistent.
             diff = size[0] - arr.shape[0]
             arr = np.pad(arr, [(diff//2, diff - (diff//2)), (0, 0)])
         if arr.shape[1] > size[1]:  # If dim 1 is bigger than specified, trim it

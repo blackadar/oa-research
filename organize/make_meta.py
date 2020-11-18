@@ -6,6 +6,7 @@ These functions help make the meta directory in each visit folder:
             images/ : Images, as uint8 png converted from DICOM
             bml_masks/ : BML masks, as png converted from .txt files
             bone_masks/ : Bone Segmentation, as png converted from .txt files
+            bone_segmented_images/ : Images, with bone_masks applied
 
 """
 import common.files as files
