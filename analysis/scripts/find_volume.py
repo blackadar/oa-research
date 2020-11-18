@@ -2,8 +2,9 @@
 Finds the volume measurement from the preds output of a model.
 """
 import pathlib
+
+import common.dictutils
 import common.files as files
-import common.imutils as iu
 import analysis.volume as vol
 
 preds = pathlib.Path('data/iwfs_out/')
@@ -11,8 +12,8 @@ preds = pathlib.Path('data/iwfs_out/')
 
 def main():
     preds_series = files.read_image_series(preds, ends_with="pred.png")
-    preds_series = iu.slices_to_mask(preds_series, threshold=0.5)
-    preds_volumes = iu.visit_to_volume(preds_series)
+    preds_series = common.dictutils.slices_to_mask(preds_series, threshold=0.5)
+    preds_volumes = common.dictutils.visit_to_volume(preds_series)
 
     print("Volumetric Analysis")
 

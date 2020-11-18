@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
 
+import common.dictutils
 import common.files as files
-import common.imutils as iu
 import analysis.volume as vol
 
 preds_iwfs = pathlib.Path('data/run_models/iwfs')
@@ -23,8 +23,8 @@ def main():
 
     print(f"Loading IWFS predictions from {preds_iwfs}")
     preds_iwfs_series = files.read_image_series(preds_iwfs, ends_with="pred.png")
-    preds_iwfs_series = iu.slices_to_mask(preds_iwfs_series, threshold=0.5)
-    preds_iwfs_volumes = iu.visit_to_volume(preds_iwfs_series)
+    preds_iwfs_series = common.dictutils.slices_to_mask(preds_iwfs_series, threshold=0.5)
+    preds_iwfs_volumes = common.dictutils.visit_to_volume(preds_iwfs_series)
     preds_iwfs_totals = {}  # Key: Patient, Val: List of Volumes
 
     print(f"Calculating IWFS volume metrics")
@@ -37,9 +37,9 @@ def main():
                 preds_iwfs_totals[patient].append(v)
 
     print(f"Loading DESS predictions from {preds_dess}")
-    preds_dess_series = files.read_image_series(preds_dess, ends_with="pred.png", no_visit=True)
-    preds_dess_series = iu.slices_to_mask(preds_dess_series, threshold=0.5)
-    preds_dess_volumes = iu.visit_to_volume(preds_dess_series)
+    preds_dess_series = files.read_image_series(preds_dess, ends_with="pred.png")
+    preds_dess_series = common.dictutils.slices_to_mask(preds_dess_series, threshold=0.5)
+    preds_dess_volumes = common.dictutils.visit_to_volume(preds_dess_series)
     preds_dess_totals = {}  # Key: Patient, Val: List of Volumes
 
     print(f"Loading CDI markers from {cdi_files}")
@@ -50,6 +50,7 @@ def main():
         for visit, (start, end) in visits.items():
             try:
                 preds_dess_volumes[patient][visit] = preds_dess_volumes[patient][visit][start:end, ...]
+
             except (KeyError,) as e:
                 print(f"{patient}:{visit}, ", end='')
     print('')
@@ -91,8 +92,8 @@ def main():
     print(f"Loading BML from {manual_bml_masks}")
     # Find Manual BML Mask Volumes
     manual_bml_series = files.read_image_series(manual_bml_masks, ends_with="mask.bmp")
-    manual_bml_series = iu.slices_to_mask(manual_bml_series, threshold=0.5)
-    manual_bml_volumes = iu.visit_to_volume(manual_bml_series)
+    manual_bml_series = common.dictutils.slices_to_mask(manual_bml_series, threshold=0.5)
+    manual_bml_volumes = common.dictutils.visit_to_volume(manual_bml_series)
     manual_bml_totals = {}  # Key: Patient, Val: List of Volumes
 
     print(f"Calculating BML volume metrics")
@@ -121,13 +122,13 @@ def main():
     print('')
     #################################################################################################
 
-    print(f"Finding Pearson Correlation of (IWFS - DESS) to BML.")
-    pearson_intersection = diff_iwfs_dess.keys() & manual_bml_totals.keys()
+    print(f"Finding Pearson Correlation of IWFS and DESS")
+    pearson_intersection = preds_iwfs_totals.keys() & preds_dess_totals.keys()
     pearson_x = []
     pearson_y = []
     for patient in pearson_intersection:
-        pearson_x.append(manual_bml_totals[patient][0])
-        pearson_y.append(diff_iwfs_dess[patient])
+        pearson_x.append(next(iter(preds_iwfs_totals[patient])))
+        pearson_y.append(next(iter(preds_dess_totals[patient])))
 
     pearson_x = np.array(pearson_x)
     pearson_y = np.array(pearson_y)
@@ -135,9 +136,9 @@ def main():
     print(f"Pearson R: {r}\nP-Value: {p_val}")
 
     plt.scatter(pearson_x, pearson_y, alpha=0.7)
-    plt.title("BML vs (IWFS - DESS) Volume Measurement")
-    plt.xlabel("BML Segmentation Volume")
-    plt.ylabel("(IWFS - DESS) Volume")
+    plt.title("IWFS vs DESS Volume Measurements")
+    plt.xlabel("IWFS Volume")
+    plt.ylabel("DESS Volume")
     plt.figtext(0.99, 0.01, f"r = {r : .4f}", horizontalalignment='right')
     plt.show()
 
