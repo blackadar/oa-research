@@ -62,9 +62,13 @@ def read_masks_from_txt(path):
     """
     Uses Barak's mask_generator to read masks from their .txt files.
     Depends on common.masks.
-    :param path: pathlib.Path or str, path to the .txt file
+    Based on main from https://github.com/barakmichaely/bone-classification/blob/master/utils/mask_generator.py
+    :param path: path-like, path to the .txt file
     :return: dict, {slice_number: PIL Image}
     """
+    # This goes through the .txt, line by line and parses metadata first, then each segmented region.
+    # The file format is proprietary. See masks.py for info about the structure.
+
     file = open(path, 'r')
     file_lines = file.readlines()
     metadata = mask_generator.extract_mask_metadata(file_lines)

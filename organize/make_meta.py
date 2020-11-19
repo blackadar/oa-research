@@ -111,7 +111,7 @@ def make_meta_bml_masks(input_path, output_path, fill_holes=False, context=None)
     if fill_holes:
         new_slices = {}
         for k, v in slices.items():
-            new_slices[k] = masks.fill_mask(v)
+            new_slices[k] = masks.fill_mask(v)  # Makes one continuous region, atypical for BML but here just in case
         slices = new_slices
 
     # Write a mask for each slice
@@ -155,7 +155,7 @@ def make_meta_bone_masks(input_path, output_path, fill_holes=True, context=None)
     if fill_holes:
         new_slices = {}
         for k, v in slices.items():
-            new_slices[k] = masks.fill_mask(v)
+            new_slices[k] = masks.fill_mask(v)  # Makes one continuous region, for the bone label
         slices = new_slices
 
     # Write a mask for each slice
@@ -194,7 +194,7 @@ def make_meta_bone_segmented_images(input_path, output_path, fill_holes=True, co
     if fill_holes:
         new_slices = {}
         for k, v in bone_mask_slices.items():
-            new_slices[k] = masks.fill_mask(v)
+            new_slices[k] = masks.fill_mask(v)  # Makes one continuous region, for the bone label
         bone_mask_slices = new_slices
 
     if context:
@@ -211,7 +211,8 @@ def make_meta_bone_segmented_images(input_path, output_path, fill_holes=True, co
             except TypeError as e:
                 continue
             if slc_num in bone_mask_slices.keys():
-                im = np.pad(files.read_dicom(slc).pixel_array, [(0, 4), (0, 0)])
-                mask = np.pad(bone_mask_slices[slc_num].astype(bool), [(0, 0), (0, 4)])
-                im[~mask] = 0
+                # We need the image and mask the same size - (448, 448)
+                im = np.pad(files.read_dicom(slc).pixel_array, [(0, 4), (0, 0)])  # Images are (444, 448)
+                mask = np.pad(bone_mask_slices[slc_num].astype(bool), [(0, 0), (0, 4)])  # Masks are (448, 444)
+                im[~mask] = 0  # This applies the mask to the image - setting all positions without mask to zero
                 files.write_image(im, output_path=output_path / f'{patient}_{visit}_{slc_num}.bmp')
