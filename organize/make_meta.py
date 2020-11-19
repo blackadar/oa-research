@@ -72,7 +72,7 @@ def make_meta_images(input_path, output_path, context=None):
         visit = 'vxx'
     for slc in slices:
         if not slc.is_dir():
-            slc_num = slc.name
+            slc_num = int(slc.name)
             files.write_image(files.read_dicom(slc), output_path=output_path / f'{patient}_{visit}_{slc_num}.bmp')
 
 
