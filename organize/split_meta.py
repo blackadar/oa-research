@@ -123,6 +123,7 @@ def _build_general(baseline_meta, target_meta, out_dir, patients_split, only_v00
                 t_imgs = []  # Stores names of target images, with _mask
                 t_imgs_corr = []  # Stores only the part of target image name, without _mask
                 b_imgs = []  # Stores baseline image names
+                # Note: This assumes that masks are a subset of images, that is, that there is no mask without image.
                 for t_img in t_meta.iterdir():
                     if t_img.is_file():
                         assert '_mask' in t_img.name, "Target must have 'mask' in the name, otherwise the files cannot be associated with the baseline."

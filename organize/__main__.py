@@ -66,10 +66,10 @@ def list_prompt(prompt, options, context=None):
     try:
         selection = int(selection.strip())
     except ValueError:
-        list_prompt(prompt, options, context=f"'{selection}' is not an integer. Try again.")
+        return list_prompt(prompt, options, context=f"'{selection}' is not an integer. Try again.")
     selection = selection - 1  # User entered one-based index
     if selection not in range(0, len(options)):
-        list_prompt(prompt, options, context=f"'{selection + 1}' is not a selection. Try again.")
+        return list_prompt(prompt, options, context=f"'{selection + 1}' is not a selection. Try again.")
 
     clear()
     return selection
@@ -94,15 +94,14 @@ def multi_list_prompt(prompt, options, context=None):
         try:
             i = int(s.strip())
         except ValueError:
-            multi_list_prompt(prompt, options, context=f"'{s}' is not an integer. Try again.")
-            break
+            return multi_list_prompt(prompt, options, context=f"'{s}' is not an integer. Try again.")
         i -= 1  # User entered one-based index
         if i not in range(0, len(options)):
-            multi_list_prompt(prompt, options, context=f"'{i + 1}' is not a selection. Try again.")
+            return multi_list_prompt(prompt, options, context=f"'{i + 1}' is not a selection. Try again.")
         cleaned.append(i)
 
     if len(cleaned) < 1:
-        multi_list_prompt(prompt, options, context=f"Please make a selection.")
+        return multi_list_prompt(prompt, options, context=f"Please make a selection.")
 
     clear()
     return cleaned
@@ -119,11 +118,11 @@ def path_prompt(prompt, check_exists=True, context=None):
     try:
         path = pathlib.Path(path)
     except Exception as e:
-        path_prompt(prompt, check_exists=check_exists, context=f"Invalid Path: {e}. Try again.")
+        return path_prompt(prompt, check_exists=check_exists, context=f"Invalid Path: {e}. Try again.")
 
     if check_exists:
         if not path.exists():
-            path_prompt(prompt, check_exists=check_exists, context=f"Path '{path}' does not exist. Try again.")
+            return path_prompt(prompt, check_exists=check_exists, context=f"Path '{path}' does not exist. Try again.")
 
     clear()
     return path
