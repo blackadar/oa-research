@@ -4,8 +4,9 @@ This can generate "meta" folders with masks and images in formats for ML algorit
 It will also help get data out of this structure, into "train", "test", and "validate" as desired.
 """
 from organize import make_meta, split_meta
-from os import system, name
+from os import system, name, getcwd
 import pathlib
+import sys
 
 
 def main():
@@ -13,7 +14,7 @@ def main():
 
     if op == 0:
         # Generate meta folders
-        path = path_prompt("Enter Patient Folder", check_exists=True)
+        path = path_prompt(f"Enter Patient Folder (absolute or relative to {getcwd()})", check_exists=True)
         options = multi_list_prompt("Select Data to Generate", ["Images", "BML Masks", "Bone Masks",
                                                                 "Bone Segmented Images"])
         images = 0 in options
@@ -26,12 +27,19 @@ def main():
         # Create Data from Meta Folders
         num_phase = int_prompt("How many Phase folders?")
         phases = []
+        use_first = []
         weights = []
         for p in range(0, num_phase):
-            phases.append(path_prompt(f"Enter Phase Path {p+1}."))
-            train = float_prompt(f"Enter amount of this data allocated to training, 0.0 - 1.0.")
-            test = float_prompt(f"Enter amount of this data allocated to testing, 0.0 - 1.0.")
-            validate = float_prompt(f"Enter amount of this data allocated to validation, 0.0 - 1.0.")
+            phases.append(path_prompt(f"Enter Phase Path {p+1}. (absolute or relative to {getcwd()})"))
+            partial = list_prompt(f"Would you like to use a partial amount of patients in {phases[p]}?",
+                                  ["Yes, specify the number of patients to use.", "No, use all patients in folder."])
+            if partial == 0:
+                use_first.append(int_prompt(f"How many patients (first n) should be used from {phases[p]}?"))
+            else:
+                use_first.append(None)  # Signals to use all
+            train = float_prompt(f"Enter percentage of {phases[p]} patients allocated to training, 0.0 - 1.0.")
+            test = float_prompt(f"Enter percentage of {phases[p]} patients allocated to testing, 0.0 - 1.0.")
+            validate = float_prompt(f"Enter percentage of {phases[p]} patients allocated to validation, 0.0 - 1.0.")
             weights.append((train, test, validate))
 
         dat = list_prompt("Choose the data configuration.", ["Bone Segmentation (images, bone masks)",
@@ -39,7 +47,16 @@ def main():
                                                              "Bone Segmented BML (bone segmented images, bml masks)"])
         output = path_prompt("Enter output directory for train, test, validate folders.", check_exists=False)
 
-        patients = split_meta.split_phases(phases, weights)
+        # Check Output is on a pre-approved drive
+        if output.resolve().drive not in ("F:", "C:", "f:", "c:"):
+            confirm = list_prompt(f"{output} seems like an irregular choice. Are you sure? "
+                                  f"You probably want to write to the Student drive.",
+                                  [f"Yes, output to {output}.", "No, cancel operation."])
+            if confirm == 1:
+                print("Please re-run the script to start your operation correctly.")
+                sys.exit(0)
+
+        patients = split_meta.split_phases(phases, weights, use_first)
         if dat == 0:
             split_meta.bone_segmentation(output, patients, only_v00=True)
         if dat == 1:

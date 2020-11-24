@@ -161,9 +161,9 @@ def _extract_coordinates(line):
     for p in pairs:
         x1, x2 = p.split(".")
         c = Coordinate()
-        c.y = y - 3  # TODO: Why -3 for MATLAB equivalency?
-        c.x1 = int(x1) - 1  # TODO: ^^
-        c.x2 = int(x2) - 1  # TODO: ^^
+        c.y = y - 3  # Offset of 3 is due to uneven mask (448, 444) and zero-based indexing
+        c.x1 = int(x1) - 1  # Zero-based indexing
+        c.x2 = int(x2) - 1  # Zero-based indexing
         values.append(c)
 
     return values

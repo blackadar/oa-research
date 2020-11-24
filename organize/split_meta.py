@@ -10,10 +10,11 @@ import json
 import datetime
 
 
-def split_patients(path, train=0.7, test=0.15, validate=0.15):
+def split_patients(path, train=0.7, test=0.15, validate=0.15, use_first=None):
     """
     Divide the data into train, test, and validate on the patient level.
     This prevents unfair bias from preview into the test/validate sets.
+    :param use_first: int optional, only use the first use_first number of patients in this path.
     :param path: path-like to the directory containing patient directories
     :param train: float 0.0 - 1.0 amount of total data to allocate to training
     :param test: float 0.0 - 1.0 amount of total data to allocate to testing
@@ -29,6 +30,8 @@ def split_patients(path, train=0.7, test=0.15, validate=0.15):
 
     folder = pathlib.Path(path)
     patients = [patient for patient in folder.iterdir() if patient.is_dir()]
+    if use_first is not None:
+        patients = patients[0:use_first]
     num_patients = len(patients)
     # Note that the specified percentages might not be exactly possible with the number of patients.
     # So, we'll use floor division on train and test, and give the remainder to validation.
@@ -50,23 +53,29 @@ def split_patients(path, train=0.7, test=0.15, validate=0.15):
     return result
 
 
-def split_phases(paths, weights):
+def split_phases(paths, weights, use_first=None):
     """
     Splits PhaseX folders and combines their output into one patient split.
     Caller specifies paths as a list and weights as a list of (train, test, validate) tuples, equal length.
+    :param use_first: List, optional, of integers representing the number of patients to use from each path.
+                         None signals to use all. Must be equal length.
     :param paths: List of path-likes to folders containing patients
     :param weights: List of (train, test, validate) tuples (each is a 0.0 - 1.0 float), equal in length to paths
     :return: dict {'train': [...], 'test': [...], 'validate': [...]}
     """
     assert len(paths) == len(weights), "Specify an equal set of weights for each path."
+    assert use_first is None or len(use_first) == len(paths), "Specify an equal set of num_patients for each path."
     result = {  # Will hold the paths to each image to be split into the corresponding key's group
             'train':    [],
             'test':     [],
             'validate': [],
     }
 
-    for path, (train, test, validate) in zip(paths, weights):  # We need to split each directory, and update the results
-        r = split_patients(path, train, test, validate)
+    if use_first is None:
+        use_first = [None] * len(paths)
+
+    for path, (train, test, validate), num in zip(paths, weights, use_first):  # We need to split each directory, and update the results
+        r = split_patients(path, train, test, validate, num)
         result['train'].extend(r['train'])
         result['test'].extend(r['test'])
         result['validate'].extend(r['validate'])
@@ -98,6 +107,9 @@ def _build_general(baseline_meta, target_meta, out_dir, patients_split, only_v00
                     'target_meta': str(target_meta),
                     'output_dir': str(out_dir),
                     'only_v00': only_v00,
+                    'num_train_patients': len(patients_split['train']),
+                    'num_test_patients': len(patients_split['test']),
+                    'num_validate_patients': len(patients_split['validate']),
                     'timestamp': str(datetime.datetime.now())
             },  # Next, we'll store the data in levels by train/test/split, then patient ID, then visit, then slices.
             'train': {},
