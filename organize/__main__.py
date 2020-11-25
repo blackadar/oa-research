@@ -47,6 +47,13 @@ def main():
                                                              "Bone Segmented BML (bone segmented images, bml masks)"])
         output = path_prompt("Enter output directory for train, test, validate folders.", check_exists=False)
 
+        # Check Output is Writeable
+        try:
+            output.resolve()
+        except OSError as e:
+            print(f"Invalid path '{output}': {e}")
+            sys.exit(-1)
+
         # Check Output is on a pre-approved drive
         if output.resolve().drive not in ("F:", "C:", "f:", "c:"):
             confirm = list_prompt(f"{output} seems like an irregular choice. Are you sure? "

@@ -39,14 +39,17 @@ def make_meta_for_patients(path, images=True, bone_segmented_images=True, bml=Tr
         for visit in visits:
             context['visit_key'] = visit.name
 
-            if images:
-                make_meta_images(visit, visit / 'meta' / 'images', context=context)
-            if bml:
-                make_meta_bml_masks(visit, visit / 'meta' / 'bml_masks', context=context)
-            if bone:
-                make_meta_bone_masks(visit, visit / 'meta' / 'bone_masks', context=context)
-            if bone_segmented_images:
-                make_meta_bone_segmented_images(visit, visit / 'meta' / 'bone_segmented_images', context=context)
+            try:
+                if images:
+                    make_meta_images(visit, visit / 'meta' / 'images', context=context)
+                if bml:
+                    make_meta_bml_masks(visit, visit / 'meta' / 'bml_masks', context=context)
+                if bone:
+                    make_meta_bone_masks(visit, visit / 'meta' / 'bone_masks', context=context)
+                if bone_segmented_images:
+                    make_meta_bone_segmented_images(visit, visit / 'meta' / 'bone_segmented_images', context=context)
+            except Exception as e:
+                print(f"Error processing meta for {patient}, {visit}: {e}")
 
     sys.stdout.write(f"\rProcessed {len(patients)} patients from {path}.\r\n")
     sys.stdout.flush()

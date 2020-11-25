@@ -8,6 +8,7 @@ import pathlib
 import shutil
 import json
 import datetime
+import sys
 
 
 def split_patients(path, train=0.7, test=0.15, validate=0.15, use_first=None):
@@ -118,36 +119,54 @@ def _build_general(baseline_meta, target_meta, out_dir, patients_split, only_v00
     }
 
     def work(iterable, out_dir, tracker):
-        for p in iterable:
+        for idx, p in enumerate(iterable):
+            sys.stdout.write(
+                f"\rBuilding {idx} of {len(iterable)} patients in {out_dir}. ({idx / len(iterable) * 100: .2f}%)")
+            sys.stdout.flush()
             tracker[p.name] = {}
             visits = [p/'v00', ] if only_v00 else [visit for visit in p.iterdir() if visit.is_dir()]
             for v in visits:
+                # Set up the JSON data for this visit
                 tracker[p.name][v.name] = {
                         'baselines': [],
                         'targets': [],
                 }
+                # Establish the relative directories, and make sure they were built correctly
                 meta = v/'meta'
                 b_meta = meta/baseline_meta
                 t_meta = meta/target_meta
                 assert meta.exists(), f"{v} does not contain a meta directory."
                 assert b_meta.exists(), f"{v} does not contain a baseline '{baseline_meta}' meta directory."
                 assert t_meta.exists(), f"{v} does not contain a target '{target_meta}' meta directory."
+
+                # Build lists of all available images for this visit
                 t_imgs = []  # Stores names of target images, with _mask
-                t_imgs_corr = []  # Stores only the part of target image name, without _mask
                 b_imgs = []  # Stores baseline image names
-                # Note: This assumes that masks are a subset of images, that is, that there is no mask without image.
-                for t_img in t_meta.iterdir():
+                for t_img in t_meta.iterdir():  # Find all target images
                     if t_img.is_file():
-                        assert '_mask' in t_img.name, "Target must have 'mask' in the name, otherwise the files cannot be associated with the baseline."
-                        shutil.copy(t_img, out_dir/t_img.name)  # Copy to target dir
-                        t_imgs.append(t_img.name)  # Add full name to t_imgs
-                        t_imgs_corr.append(t_img.name.replace('_mask', ''))  # Add name without _mask to t_imgs_corr
-                for b_img in b_meta.iterdir():
-                    if b_img.is_file() and b_img.name in t_imgs_corr:  # Check if the same name was in target (without _mask)
-                        shutil.copy(b_img, out_dir/b_img.name)  # Copy to target dir
-                        b_imgs.append(b_img.name)  # Add to b_imgs for the JSON data
+                        assert '_mask' in t_img.name, "Target must have '_mask' in the name, otherwise the files " \
+                                                      "cannot be associated with the baseline."
+                        t_imgs.append(t_img.name)
+                for b_img in b_meta.iterdir():  # Find all baseline images
+                    if b_img.is_file():
+                        b_imgs.append(b_img.name)
+
+                # Now, we need to know the pairs of masks and images. Python set is a convenient way to do that:
+                intersection = set([t.replace('_mask', '') for t in t_imgs]) & set(b_imgs)
+                # Since we need the original filenames, not the ones modified in the set, we need two more O(n) calls...
+                b_imgs = [b for b in b_imgs if b in intersection]
+                t_imgs = [t for t in t_imgs if t.replace('_mask', '') in intersection]
+
+                # Finally, an O(n) call to actually copy the pared down lists, which can now be zipped in equal len
+                for (b_img, t_img) in zip(b_imgs, t_imgs):
+                    shutil.copy(t_meta / t_img, out_dir / t_img)
+                    shutil.copy(b_meta / b_img, out_dir / b_img)
+
                 tracker[p.name][v.name]['baselines'] = b_imgs
                 tracker[p.name][v.name]['targets'] = t_imgs
+
+        sys.stdout.write(f"\rBuilt {len(iterable)} of {len(iterable)} patients in {out_dir}. ({100: .2f}%)\r\n")
+        sys.stdout.flush()
 
     work(patients_split['train'], train_dir, tracker['train'])
     work(patients_split['test'], test_dir, tracker['test'])
