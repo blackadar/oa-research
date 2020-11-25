@@ -1,0 +1,21 @@
+{
+	"meta_baseline": "images",
+	"meta_target": "bml_masks",
+	"output_dir": "F:\\Jordan\\tmp\\jstest",
+	"only_v00": true,
+	"phases": [{
+			"dir": "G:\\U01\\U01\\IWFS\\Phase3",
+			"use_first": null,
+			"train": 1.0,
+			"test": 0.0,
+			"validate": 0.0
+		},
+		{
+			"dir": "G:\\U01\\U01\\IWFS\\Phase4",
+			"use_first": null,
+			"train": 0.55,
+			"test": 0.225,
+			"validate": 0.225
+		}
+	]
+}

@@ -7,10 +7,12 @@ from organize import make_meta, split_meta
 from os import system, name, getcwd
 import pathlib
 import sys
+import json
 
 
 def main():
-    op = list_prompt("Choose an Operation", ["Generate Meta Folders", "Create Data from Meta Folders", "Exit"])
+    op = list_prompt("Choose an Operation", ["Generate Meta Folders", "Create Data from Meta Folders (Interactive)",
+                                             "Create Data from Meta Folders (JSON)", "Exit"])
 
     if op == 0:
         # Generate meta folders
@@ -72,6 +74,28 @@ def main():
             split_meta.bone_segmented_bml(output, patients, only_v00=True)
         done()
     elif op == 2:
+        js_file = path_prompt(f"Where is the JSON file? (absolute or relative to {getcwd()})", check_exists=True)
+        with open(js_file) as js:
+            inp = json.load(js)
+            try:
+                phases = inp['phases']
+                phase_paths = []
+                weights = []
+                use_first = []
+
+                for phase in phases:
+                    phase_paths.append(phase['dir'])
+                    weights.append((phase['train'], phase['test'], phase['validate']))
+                    use_first.append(phase['use_first'])
+
+                patients = split_meta.split_phases(phase_paths, weights, use_first)
+                split_meta._build_general(inp['meta_baseline'], inp['meta_target'], inp['output_dir'],
+                                          patients, only_v00=inp['only_v00'])
+            except KeyError as e:
+                print(f"JSON missing required info. {e}")
+        done()
+
+    elif op == 3:
         # Exit
         exit(0)
 
