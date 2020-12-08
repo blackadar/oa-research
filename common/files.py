@@ -10,6 +10,64 @@ import sys
 log = logging.getLogger(__name__)
 
 
+def _rescale(data):
+    """
+    Rescales the data from another datatype (usually uint16) to fit into uint8.
+    This is a LOSSY conversion, as we lose bit precision doing this!
+    1. Divide by max (Vals are now floats 0 - 1.0)
+    2. Multiply by 255 (now 0 - 255)
+    3. Cast to uint8
+    :param data: Data to convert and rescale
+    :return: Rescaled data
+    """
+    arr = data / np.max(data)
+    arr = 255 * arr
+    arr = arr.astype(np.uint8)
+    return arr
+
+
+def _resize(data, size=(448, 448), center=False):
+    """
+    Resizes an array to a new desired size. Either uses centered cropping/padding, or just top-left aligned.
+    :param data: Data to resize, as an array
+    :param size: Desired size, as an int two-tuple
+    :param center: boolean, whether to use centering methods.
+    :return: Resized data
+    """
+    if center:  # Use image centering to add padding equally to each side
+        if data.shape != size:  # If specified size is different...
+            if data.shape[0] > size[0]:  # If dim 0 is bigger than specified, trim it
+                x_start = data.shape[0] // 2 - size[0] // 2
+                x_end = x_start + size[0]
+                data = data[x_start:x_end]
+            else:  # Else, if it's the same or lesser, pad it
+                diff = size[0] - data.shape[0]
+                data = np.pad(data, [(diff//2, diff - (diff//2)), (0, 0)])
+            if data.shape[1] > size[1]:  # If dim 1 is bigger than specified, trim it
+                y_start = data.shape[1] // 2 - size[1] // 2
+                y_end = y_start + size[1]
+                data = data[:, y_start:y_end]
+            else:  # Else, if it's the same or lesser, pad it
+                diff = size[1] - data.shape[1]
+                data = np.pad(data, [(0, 0), (diff // 2, diff - (diff // 2))])
+
+    else:  # Just align the image to the top left and pad the bottom and right
+        top = 0
+        bottom = size[1] - data.shape[1]
+        left = 0
+        right = size[0] - data.shape[0]
+        if bottom < 0:
+            data = data[:, :size[1]]
+            bottom = 0
+        if right < 0:
+            data = data[:size[0], :]
+            right = 0
+        data = np.pad(data, ((left, right), (top, bottom)))
+
+    assert data.shape == size, f"Error in logic! Shape was supposed to be {size}, but was {data.shape}"
+    return data
+
+
 def read_dicom(path):
     """
     Reads a DICOM from path.
@@ -31,28 +89,12 @@ def write_image(dataset, output_path, size=(448, 448)):
     # Grab just the pixel data if provided a pydicom.Dataset
     if isinstance(dataset, pydicom.Dataset):
         dataset = dataset.pixel_array
+
     # Rescale the Image to 0 -> 255
-    arr = dataset / np.max(dataset)
-    arr = 255 * arr
-    arr = np.uint8(arr)
+    arr = _rescale(dataset)
 
-    if arr.shape != size:  # If specified size is different...
-        if arr.shape[0] > size[0]:  # If dim 0 is bigger than specified, trim it
-            x_start = arr.shape[0] // 2 - size[0] // 2
-            x_end = x_start + size[0]
-            arr = arr[x_start:x_end]
-        else:  # Else, if it's the same or lesser, pad it
-            diff = size[0] - arr.shape[0]
-            arr = np.pad(arr, [(diff//2, diff - (diff//2)), (0, 0)])
-        if arr.shape[1] > size[1]:  # If dim 1 is bigger than specified, trim it
-            y_start = arr.shape[1] // 2 - size[1] // 2
-            y_end = y_start + size[1]
-            arr = arr[:, y_start:y_end]
-        else:  # Else, if it's the same or lesser, pad it
-            diff = size[1] - arr.shape[1]
-            arr = np.pad(arr, [(0, 0), (diff // 2, diff - (diff // 2))])
-
-    assert arr.shape == size, f"Error in logic! Shape was supposed to be {size}, but was {arr.shape}"
+    # Resize to desired size
+    arr = _resize(arr, size)
 
     im = Image.fromarray(arr)
     im.save(output_path)
@@ -96,14 +138,16 @@ def read_masks_from_txt(path):
     return data
 
 
-def write_mask(data, path):
+def write_mask(data, path, size=(448, 448)):
     """
     Writes a PIL Image mask to file.
-    :param data: PIL Image to write
+    :param size: Image size (pad or crop, centered)
+    :param data: image data array
     :param path: pathlib.Path or str path to write Image
     :return: None
     """
-    im = Image.fromarray(data, mode='L')
+    arr = _resize(data, size)
+    im = Image.fromarray(arr, mode='L')
     im.save(path)
 
 

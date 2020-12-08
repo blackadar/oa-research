@@ -1,0 +1,14 @@
+{
+	"meta_baseline": "bone_segmented_images",
+	"meta_target": "bml_masks",
+	"output_dir": "data/out/jstest",
+	"only_v00": true,
+	"phases": [{
+			"dir": "data/iwfs_test",
+			"use_first": null,
+			"train": 0.7,
+			"test": 0.15,
+			"validate": 0.15
+		}
+	]
+}
